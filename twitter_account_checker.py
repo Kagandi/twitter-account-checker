@@ -21,16 +21,16 @@ except ImportError:
 getter = requests.Session()
 
 
-def list_to_delimited_string(str_list, delimiter=","):
+def _list_to_delimited_string(str_list, delimiter=","):
     return delimiter.join(map(str, str_list))
 
 
-def two_dimensional_list_to_string(two_dim_list):
-    str_list = [list_to_delimited_string(row) for row in two_dim_list]
-    return list_to_delimited_string(str_list, "\n")
+def _two_dimensional_list_to_string(two_dim_list):
+    str_list = [_list_to_delimited_string(row) for row in two_dim_list]
+    return _list_to_delimited_string(str_list, "\n")
 
 
-def get_page_final_url(url):
+def _get_page_final_url(url):
     failed = 0
     while failed < 4:
         try:
@@ -39,12 +39,13 @@ def get_page_final_url(url):
         except requests.ConnectionError as e:
             print(e.message)
             print("Error, Try:" + str(failed) + " ,URL: " + url)
+            failed += 1
     return None, None
 
 
 def get_twitter_account_state(user_id):
-    url = twitter_user_name_to_url(user_id)
-    full_url = get_page_final_url(url[1])
+    url = _twitter_user_name_to_url(user_id)
+    full_url = _get_page_final_url(url)
     if full_url[1] == 200:
         if "suspended" in full_url[0]:
             return user_id, "Suspended"
@@ -54,15 +55,15 @@ def get_twitter_account_state(user_id):
         return user_id, "Not Found"
 
 
-def parallel_runner(user_ids, workers=4):
+def check_multiple_twitter_accounts(user_ids, workers=4):
     processes = Parallel(n_jobs=workers)(
         delayed(get_twitter_account_state)(user_id.rstrip()) for user_id in user_ids)
     processes = [x for x in processes if x is not None]
     return processes
 
 
-def twitter_user_name_to_url(username):
-    return username, "https://twitter.com/" + username
+def _twitter_user_name_to_url(username):
+    return "https://twitter.com/" + username
 
 
 if __name__ == '__main__':
@@ -78,15 +79,15 @@ if __name__ == '__main__':
     accounts_states = []
 
     if ids:
-        accounts_states = parallel_runner(ids)
+        accounts_states = check_multiple_twitter_accounts(ids)
     elif options.file:
         with open(options.file, "r") as f:
-            accounts_states = parallel_runner(f, options.threads)
+            accounts_states = check_multiple_twitter_accounts(f, options.threads)
     if not ids and not options.file:
         parser.error("Please supply twitter usernames or a file.")
         sys.exit(1)
 
-    csv = two_dimensional_list_to_string(accounts_states)
+    csv = _two_dimensional_list_to_string(accounts_states)
     if options.output_path:
         with open(options.output_path, 'w') as f:
             f.write(csv)
