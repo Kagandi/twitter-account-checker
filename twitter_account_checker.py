@@ -1,3 +1,12 @@
+# -*- coding: utf-8 -*-
+"""
+This module checks twitter accounts in order to detect if they were suspended or deleted.
+
+Example
+-------
+    $ python twitter_account_checker.py twitter_username1 twitter_username2
+
+"""
 import sys
 from optparse import OptionParser
 
@@ -44,6 +53,19 @@ def _get_page_final_url(url):
 
 
 def get_twitter_account_state(user_id):
+    """This functions check for a twitter account its current state (Exist, Suspended, Not Found).
+
+    Parameters
+    ----------
+    user_id str
+        The username of the twitter account that should be checked.
+
+    Returns
+    -------
+    tuple
+        The username and its state (Exist, Suspended, Not Found).
+
+    """
     url = _twitter_user_name_to_url(user_id)
     full_url = _get_page_final_url(url)
     if full_url[1] == 200:
@@ -56,6 +78,20 @@ def get_twitter_account_state(user_id):
 
 
 def check_multiple_twitter_accounts(user_ids, workers=4):
+    """This functions check a list of twitter accounts current state (Exist, Suspended, Not Found)
+
+    Parameters
+    ----------
+    user_ids: list
+        Contains list of usernames to check.
+    workers int, optional
+        If joblib installed determines the number of workers to use.
+
+    Returns
+    -------
+    list[tuple]
+        A list of that contains the states of the twitter accounts.
+    """
     processes = Parallel(n_jobs=workers)(
         delayed(get_twitter_account_state)(user_id.rstrip()) for user_id in user_ids)
     processes = [x for x in processes if x is not None]
